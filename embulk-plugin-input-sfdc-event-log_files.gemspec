@@ -1,6 +1,6 @@
 Gem::Specification.new { |gem|
   gem.name = 'embulk-plugin-input-sfdc-event-log-files'
-  gem.version = '0.0.4'
+  gem.version = '0.0.5'
   gem.summary = gem.description = %q{Embulk plugin for Salesforce.com Event Log Files input}
   gem.authors = 'Hiroshi Nakamura'
   gem.email = 'nahi@ruby-lang.org'
