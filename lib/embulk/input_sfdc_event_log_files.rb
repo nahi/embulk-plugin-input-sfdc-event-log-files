@@ -20,17 +20,24 @@ module Embulk
           'last_log_date' => config.param('last_log_date', :string, default: '0001-01-01T00:00:00Z'),
           'max_retry_times' => config.param('max_retry_times', :integer, default: 2),
         }
-        idx = -1
-        schema = config.param('schema', :array).map { |c| idx += 1; Column.new(idx, c['name'], c['type'].to_sym) }
         threads = config.param('threads', :integer, default: 2)
-        task['client'] = client = HTTPClient.new
+        idx = -1
+        schema = config.param('schema', :array, default: []).map { |c| idx += 1; Column.new(idx, c['name'], c['type'].to_sym) }
 
         begin
-          oauth(task)
-          task['records'] = query(task)
+          client = HTTPClient.new
+          parsed = oauth(client, task)
+          task['instance_url'] = parsed['instance_url']
+          task['access_token'] = parsed['access_token']
+          client.base_url = task['instance_url']
+          client.default_header = { 'Authorization' => 'Bearer ' + task['access_token'] }
 
+          task['records'] = query(client, task)
+
+          if schema.empty?
+            raise 'empty schema given'
+          end
           reports = yield(task, schema, threads)
-
           last_log_date_report = reports.max_by { |report|
             report['last_log_date']
           }
@@ -43,8 +50,7 @@ module Embulk
 
     private
 
-      def oauth(task)
-        client = task['client']
+      def oauth(client, task)
         params = {
           :grant_type => 'password',
           :client_id => task['oauth_client_id'],
@@ -54,15 +60,11 @@ module Embulk
         }
         with_retry(task) {
           res = client.post(task['login_url'] + '/services/oauth2/token', params, :Accept => 'application/json; charset=UTF-8')
-          parsed = JSON.parse(res.body)
-          client.base_url = parsed['instance_url']
-          client.default_header = { 'Authorization' => 'Bearer ' + parsed['access_token'] }
-          nil
+          JSON.parse(res.body)
         }
       end
 
-      def query(task)
-        client = task['client']
+      def query(client, task)
         query = "Select LogDate, EventType, LogFile from EventLogFile Where LogDate > #{task['last_log_date']}"
         with_retry(task) {
           res = client.get('/services/data/v32.0/query/', :q => query)
@@ -83,22 +85,22 @@ module Embulk
       end
     end
 
-    def initialize(task, schema, index, page_builder)
-      @schema = schema
-      @page_builder = page_builder
-      @records = task['records']
-      @last_log_date = Time.parse(task['last_log_date'])
-      @client = task['client']
-    end
+    attr_reader :task
 
     def run
+      client = HTTPClient.new
+      client.base_url = task['instance_url']
+      client.default_header = { 'Authorization' => 'Bearer ' + task['access_token'] }
+
+      @records = task['records']
+      @last_log_date = Time.parse(task['last_log_date'])
       columns = @schema.map { |c| c.name }
-      @page_builder.finish
       @records.each do |record|
         event_type = record['EventType']
         @last_log_date = [@last_log_date, Time.parse(record['LogDate']).to_i].max
         log_file = record['LogFile']
-        CSV.parse(@client.get_content(log_file), headers: true) do |row|
+        log_body = client.get_content(log_file)
+        CSV.parse(log_body, headers: true) do |row|
           row['TIMESTAMP'] = Time.parse(row['TIMESTAMP']).to_i
           @page_builder.add(row.to_hash.values_at(*columns))
         end
