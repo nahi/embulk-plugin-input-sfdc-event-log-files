@@ -42,8 +42,7 @@ module Embulk
       end
 
       def run(task, schema, index, page_builder)
-        # This input plugin does not use schema
-        new(task, index, page_builder).run
+        new(task, schema, index, page_builder).run
       end
 
     private
@@ -88,7 +87,8 @@ module Embulk
       end
     end
 
-    def initialize(task, index, page_builder)
+    def initialize(task, schema, index, page_builder)
+      @schema = schema
       @page_builder = page_builder
       @records = task['records']
       @last_log_date = Time.parse(task['last_log_date'])
@@ -96,13 +96,15 @@ module Embulk
     end
 
     def run
+      columns = @schema.map { |c| c.name }
+      @page_builder.finish
       @records.each do |record|
         event_type = record['EventType']
         @last_log_date = [@last_log_date, Time.parse(record['LogDate']).to_i].max
         log_file = record['LogFile']
         CSV.parse(@client.get_content(log_file), headers: true) do |row|
-          row['time'] = Time.parse(row['TIMESTAMP']).to_i
-          @page_builder.add(row)
+          row['TIMESTAMP'] = Time.parse(row['TIMESTAMP']).to_i
+          @page_builder.add(row.to_hash.values_at(*columns))
         end
       end
       @page_builder.finish unless @records.empty?
