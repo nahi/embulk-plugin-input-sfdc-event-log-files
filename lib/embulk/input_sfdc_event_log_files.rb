@@ -29,8 +29,7 @@ module Embulk
           parsed = oauth(client, task)
           task['instance_url'] = parsed['instance_url']
           task['access_token'] = parsed['access_token']
-          client.base_url = task['instance_url']
-          client.default_header = { 'Authorization' => 'Bearer ' + task['access_token'] }
+          init_client(client, task)
 
           task['records'] = query(client, task)
 
@@ -46,6 +45,12 @@ module Embulk
           # TODO: log
           raise
         end
+      end
+
+      def init_client(client, task)
+        client.base_url = task['instance_url']
+        client.default_header = { 'Authorization' => 'Bearer ' + task['access_token'] }
+        client
       end
 
     private
@@ -90,9 +95,7 @@ module Embulk
     attr_reader :page_builder
 
     def run
-      client = HTTPClient.new
-      client.base_url = task['instance_url']
-      client.default_header = { 'Authorization' => 'Bearer ' + task['access_token'] }
+      client = self.class.init_client(HTTPClient.new, task)
       records = task['records']
       last_log_date = Time.parse(task['last_log_date'])
       columns = schema.map { |c| c.name }
