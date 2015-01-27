@@ -1,0 +1,69 @@
+exec: {}
+in:
+  type: sfdc_event_log_files
+  oauth:
+    id: oauth_id
+    secret: oauth_secret
+  username: nahi@treasure-data.com
+  password: password+securityToken
+  schema:
+    - { name: time, type: long }
+    - { name: EVENT_TYPE, type: string }
+    - { name: RESPONSE_SIZE, type: string }
+    - { name: USER_ID, type: string }
+    - { name: REQUEST_STATUS, type: string }
+    - { name: ENTITY_NAME, type: string }
+    - { name: REQUEST_SIZE, type: string }
+    - { name: REQUEST_ID, type: string }
+    - { name: ROWS_PROCESSED, type: string }
+    - { name: RUN_TIME, type: string }
+    - { name: QUERY, type: string }
+    - { name: CLIENT_IP, type: string }
+    - { name: CLIENT_NAME, type: string }
+    - { name: API_VERSION, type: string }
+    - { name: TIMESTAMP, type: string }
+    - { name: ORGANIZATION_ID, type: string }
+    - { name: API_TYPE, type: string }
+    - { name: METHOD_NAME, type: string }
+    - { name: URI, type: string }
+    - { name: CLIENT_VERSION, type: string }
+    - { name: USER_TYPE, type: string }
+    - { name: SESSION_TYPE, type: string }
+    - { name: RESOLUTION_TYPE, type: string }
+    - { name: USER_INITIATED_LOGOUT, type: string }
+    - { name: USER_NAME, type: string }
+    - { name: APP_TYPE, type: string }
+    - { name: SESSION_LEVEL, type: string }
+    - { name: BROWSER_TYPE, type: string }
+    - { name: PLATFORM_TYPE, type: string }
+    - { name: CLIENT_ID, type: string }
+    - { name: OPERATION, type: string }
+    - { name: MEDIA_TYPE, type: string }
+    - { name: USER_AGENT, type: string }
+    - { name: NUMBER_FIELDS, type: string }
+    - { name: METHOD, type: string }
+    - { name: STATUS_CODE, type: string }
+    - { name: REFERRER_URI, type: string }
+    - { name: SUCCESS, type: string }
+    - { name: URL, type: string }
+    - { name: TYPE, type: string }
+    - { name: ENTRY_POINT, type: string }
+    - { name: NUMBER_SOQL_QUERIES, type: string }
+    - { name: ENTITY_ID, type: string }
+    - { name: FILE_NAME, type: string }
+    - { name: FILE_TYPE, type: string }
+    - { name: SOURCE_IP, type: string }
+    - { name: OPERATION_TYPE, type: string }
+    - { name: JOB_ID, type: string }
+    - { name: ENTITY_TYPE, type: string }
+    - { name: MESSAGE, type: string }
+    - { name: BATCH_ID, type: string }
+    - { name: NUMBER_FAILURES, type: string }
+    - { name: NUMBER_EXCEPTION_FILTERS, type: string }
+    - { name: NUMBER_BUCKETS, type: string }
+    - { name: DISPLAY_TYPE, type: string }
+    - { name: SORT, type: string }
+    - { name: RENDERING_TYPE, type: string }
+    - { name: NUMBER_COLUMNS, type: string }
+    - { name: REPORT_ID, type: string }
+out: {type: stdout}
