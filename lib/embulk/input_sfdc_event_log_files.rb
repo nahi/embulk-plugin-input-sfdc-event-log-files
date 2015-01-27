@@ -20,6 +20,8 @@ module Embulk
           'last_log_date' => config.param('last_log_date', :string, default: '0001-01-01T00:00:00Z'),
           'max_retry_times' => config.param('max_retry_times', :integer, default: 2),
         }
+        idx = -1
+        schema = config.param('schema', :array).map { |c| idx += 1; Column.new(idx, c['name'], c['type'].to_sym) }
         threads = config.param('threads', :integer, default: 2)
         task['client'] = client = HTTPClient.new
 
@@ -27,7 +29,7 @@ module Embulk
           oauth(task)
           task['records'] = query(task)
 
-          reports = yield(task, [], threads)
+          reports = yield(task, schema, threads)
 
           last_log_date_report = reports.max_by { |report|
             report['last_log_date']
