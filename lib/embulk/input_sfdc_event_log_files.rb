@@ -41,10 +41,6 @@ module Embulk
         end
       end
 
-      def run(task, schema, index, page_builder)
-        new(task, schema, index, page_builder).run
-      end
-
     private
 
       def oauth(task)
