@@ -86,29 +86,35 @@ module Embulk
     end
 
     attr_reader :task
+    attr_reader :schema
+    attr_reader :page_builder
 
     def run
       client = HTTPClient.new
       client.base_url = task['instance_url']
       client.default_header = { 'Authorization' => 'Bearer ' + task['access_token'] }
-
-      @records = task['records']
-      @last_log_date = Time.parse(task['last_log_date'])
-      columns = @schema.map { |c| c.name }
-      @records.each do |record|
+      records = task['records']
+      last_log_date = Time.parse(task['last_log_date'])
+      columns = schema.map { |c| c.name }
+      records.each do |record|
         event_type = record['EventType']
-        @last_log_date = [@last_log_date, Time.parse(record['LogDate']).to_i].max
+        last_log_date = [last_log_date, Time.parse(record['LogDate']).to_i].max
         log_file = record['LogFile']
         log_body = client.get_content(log_file)
         CSV.parse(log_body, headers: true) do |row|
-          row['TIMESTAMP'] = Time.parse(row['TIMESTAMP']).to_i
-          @page_builder.add(row.to_hash.values_at(*columns))
+          if row['TIMESTAMP']
+            begin
+              row['TIMESTAMP'] = Time.parse(row['TIMESTAMP']).to_i
+            rescue
+              # ignore
+            end
+          end
+          page_builder.add(row.to_hash.values_at(*columns).map(&:to_s))
         end
       end
-      @page_builder.finish unless @records.empty?
-
+      page_builder.finish unless records.empty?
       commit_report = {
-        'last_log_date' => @last_log_date.xmlschema
+        'last_log_date' => last_log_date.xmlschema
       }
       commit_report
     end
