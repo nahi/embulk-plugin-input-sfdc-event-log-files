@@ -33,9 +33,6 @@ module Embulk
 
           task['records'] = query(client, task)
 
-          if schema.empty?
-            raise 'empty schema given'
-          end
           reports = yield(task, schema, threads)
           last_log_date_report = reports.max_by { |report|
             report['last_log_date']
@@ -98,7 +95,6 @@ module Embulk
       client = self.class.init_client(HTTPClient.new, task)
       records = task['records']
       last_log_date = Time.parse(task['last_log_date'])
-      columns = schema.map { |c| c.name }
       records.each do |record|
         event_type = record['EventType']
         last_log_date = [last_log_date, Time.parse(record['LogDate']).to_i].max
@@ -106,13 +102,13 @@ module Embulk
         log_body = client.get_content(log_file)
         CSV.parse(log_body, headers: true) do |row|
           if row['TIMESTAMP']
-            begin
-              row['TIMESTAMP'] = Time.parse(row['TIMESTAMP']).to_i
-            rescue
-              # ignore
-            end
+            row['time'] = Time.parse(row['TIMESTAMP']).to_i rescue nil
           end
-          page_builder.add(row.to_hash.values_at(*columns).map(&:to_s))
+          page_builder.add(schema.map { |c|
+            v = row[c.name]
+            v = v.to_i if c.type == 'long'
+            v
+          })
         end
       end
       page_builder.finish unless records.empty?
