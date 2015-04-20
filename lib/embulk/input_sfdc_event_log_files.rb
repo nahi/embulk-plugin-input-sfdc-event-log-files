@@ -17,8 +17,9 @@ module Embulk
           'oauth_client_secret' => oauth['secret'],
           'username' => config.param('username', :string),
           'password' => config.param('password', :string),
-          'last_log_date' => config.param('last_log_date', :string, default: '0001-01-01T00:00:00Z'),
+          'last_log_date' => config.param('last_log_date', :string, default: '1901-01-01T00:00:00.000+0000'),
           'max_retry_times' => config.param('max_retry_times', :integer, default: 2),
+          'api_version' => config.param('api_version', :string, default: '33.0'),
         }
         threads = config.param('threads', :integer, default: 2)
         idx = -1
@@ -69,7 +70,7 @@ module Embulk
       def query(client, task)
         query = "Select LogDate, EventType, LogFile from EventLogFile Where LogDate > #{task['last_log_date']}"
         with_retry(task) {
-          res = client.get('/services/data/v32.0/query/', :q => query)
+          res = client.get('/services/data/v' + task['api_version'] + '/query/', :q => query)
           JSON.parse(res.body)['records']
         }
       end
@@ -97,7 +98,7 @@ module Embulk
       last_log_date = Time.parse(task['last_log_date'])
       records.each do |record|
         event_type = record['EventType']
-        last_log_date = [last_log_date, Time.parse(record['LogDate']).to_i].max
+        last_log_date = [last_log_date, Time.parse(record['LogDate'])].max
         log_file = record['LogFile']
         log_body = client.get_content(log_file)
         CSV.parse(log_body, headers: true) do |row|
